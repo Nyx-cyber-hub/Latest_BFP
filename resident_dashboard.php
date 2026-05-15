@@ -19,107 +19,27 @@ if (!isset($_SESSION['user_id']) || $_SESSION['role'] != "resident") {
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<style>
-body {
-    margin: 0;
-    font-family: Arial;
-    display: flex;
-    height: 100vh;
-    background: #f4f6f9;
-}
-
-.sidebar {
-    width: 320px;
-    background: #111;
-    color: white;
-    padding: 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-    border-right: 4px solid #dc2626;
-}
-
-.sidebar h2 {
-    color: #dc2626;
-    font-size: 22px;
-}
-
-.userCard {
-    background: white;
-    color: black;
-    padding: 15px;
-    border-radius: 14px;
-    border-top: 3px solid #dc2626;
-}
-
-.card {
-    background: white;
-    color: black;
-    padding: 15px;
-    border-radius: 14px;
-    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
-}
-
-input, select {
-    width: 100%;
-    padding: 10px;
-    margin-top: 6px;
-    border-radius: 10px;
-    border: 1px solid #ddd;
-}
-
-input:focus, select:focus {
-    border-color: #dc2626;
-}
-
-button {
-    width: 100%;
-    padding: 10px;
-    margin-top: 10px;
-    background: #dc2626;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-button:hover {
-    background: #b91c1c;
-}
-
-#map {
-    flex: 1;
-    height: 100vh;
-}
-
-.small {
-    font-size: 12px;
-    color: gray;
-}
-</style>
+<link rel="stylesheet" href="resident.css">
 
 </head>
 
 <body>
 
-<!-- SIDEBAR -->
 <div class="sidebar">
 
     <h2>🔥 Fire Report</h2>
 
-    <div class="userCard">
+    <div class="card">
         👤 <?= $_SESSION['full_name']; ?>
-        <div class="small">Resident Account</div>
+        <br>
+        <small>Resident Account</small>
     </div>
 
     <div class="card">
         📍 Click map to select location
     </div>
 
-    <!-- REPORT FORM -->
     <div class="card">
-
         <form id="reportForm">
 
             <label>Description</label>
@@ -127,54 +47,53 @@ button:hover {
 
             <label>Severity</label>
             <select id="severity">
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
+                <option value="1">Low</option>
+                <option value="2">Medium</option>
+                <option value="3">High</option>
             </select>
 
             <button type="submit">Submit Report</button>
 
         </form>
-
     </div>
 
     <a href="logout.php">
-        <button style="background:black;border:1px solid #dc2626;">
-            Logout
-        </button>
+        <button style="background:black;border:1px solid #dc2626;">Logout</button>
     </a>
 
 </div>
 
-<!-- MAP -->
 <div id="map"></div>
 
-<script>
-
-let map = L.map('map').setView([13.8445, 121.2060], 13);
+<script> 
+    let map = L.map('map').setView([13.8445, 121.2060], 13);
 
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: 'FireGIS System'
+    attribution: 'FireGIS'
 }).addTo(map);
 
 let selectedLatLng = null;
+let marker = null;
 
 // MAP CLICK
 map.on('click', function(e){
 
     selectedLatLng = e.latlng;
 
-    L.marker([e.latlng.lat, e.latlng.lng]).addTo(map)
-        .bindPopup("📍 Selected Location")
-        .openPopup();
+    if (marker) {
+        map.removeLayer(marker);
+    }
 
+    marker = L.marker([e.latlng.lat, e.latlng.lng]).addTo(map)
+        .bindPopup("Selected Location")
+        .openPopup();
 });
 
 // SUBMIT REPORT
-document.getElementById("reportForm").addEventListener("submit", function(e){
+document.getElementById("reportForm").addEventListener("submit", async function(e){
     e.preventDefault();
 
-    if(!selectedLatLng){
+    if (!selectedLatLng) {
         alert("Please select location on map");
         return;
     }
@@ -182,44 +101,46 @@ document.getElementById("reportForm").addEventListener("submit", function(e){
     let desc = document.getElementById("description").value;
     let severity = document.getElementById("severity").value;
 
-    fetch("http://127.0.0.1:5000/report", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-            user_id: <?= $_SESSION['user_id']; ?>,
-            description: desc,
-            severity: severity,
-            lat: selectedLatLng.lat,
-            lng: selectedLatLng.lng
-        })
-    })
-    .then(async res => {
-        const data = await res.json();
+    try {
+        const res = await fetch("http://localhost:5000/report", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                user_id: <?= $_SESSION['user_id']; ?>,
+                description: desc,
+                severity: severity,
+                lat: selectedLatLng.lat,
+                lng: selectedLatLng.lng,
+                type: "Fire Report",
+                category: "Fire Incident"
+            })
+        });
 
-        if (!res.ok) {
-            console.error("Server error:", data);
-            throw new Error(data.message || "API Error");
+        let data;
+        try {
+            data = await res.json();
+        } catch {
+            throw new Error("Server did not return JSON (check Flask)");
         }
 
-        return data;
-    })
-    .then(data => {
-
-        console.log("SUCCESS:", data);
+        if (!res.ok) {
+            console.error(data);
+            throw new Error(data.message || "Server Error");
+        }
 
         alert("Report Submitted Successfully!");
-
         document.getElementById("reportForm").reset();
         selectedLatLng = null;
-    })
-    .catch(err => {
-        console.error("FAILED:", err);
-        alert("Failed to submit report: " + err.message);
-    });
+        marker = null;
 
+    } catch (err) {
+        console.error("ERROR:", err);
+        alert("Failed to submit report: " + err.message);
+    }
 });
+
 </script>
 
 </body>

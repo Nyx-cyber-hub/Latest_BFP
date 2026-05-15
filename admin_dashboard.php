@@ -27,112 +27,7 @@ href="https://unpkg.com/leaflet/dist/leaflet.css"/>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 
-<style>
-
-/* BODY */
-body{
-    overflow:hidden;
-    background:#f3f4f6;
-}
-
-/* SIDEBAR */
-#sidebar{
-    background:linear-gradient(180deg,#111,#000);
-}
-
-/* MENU */
-.menuBtn{
-    transition:0.2s ease;
-    color:white;
-    border-radius:14px;
-    padding:14px;
-}
-
-.menuBtn:hover{
-    background:rgba(255,255,255,0.08);
-}
-
-.menuBtn.active{
-    background:#dc2626;
-}
-
-.menuText{
-    transition:0.2s ease;
-}
-
-/* COLLAPSE */
-.sidebar-collapsed .menuText{
-    display:none;
-}
-
-.sidebar-collapsed .menuBtn{
-    justify-content:center;
-}
-
-/* CARD */
-.card{
-    background:white;
-    border-radius:18px;
-    padding:20px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.08);
-    border-top:4px solid #dc2626;
-}
-
-/* MAP */
-#map{
-    height:100%;
-    width:100%;
-    border-radius:12px;
-}
-
-/* TABLE */
-table{
-    border-collapse:collapse;
-}
-
-th{
-    background:black;
-    color:white;
-}
-
-th,td{
-    padding:14px;
-}
-
-/* BUTTONS */
-.actionBtn{
-    padding:6px 12px;
-    border-radius:8px;
-    color:white;
-    font-size:13px;
-    font-weight:bold;
-}
-
-.confirmBtn{
-    background:#16a34a;
-}
-
-.rejectBtn{
-    background:#dc2626;
-}
-
-/* SECTION */
-.section{
-    animation:fadeIn .25s ease;
-}
-
-@keyframes fadeIn{
-    from{
-        opacity:0;
-        transform:translateY(10px);
-    }
-    to{
-        opacity:1;
-        transform:translateY(0);
-    }
-}
-
-</style>
+<link rel="stylesheet" href="admin.css">
 
 </head>
 
@@ -174,6 +69,14 @@ th,td{
 
             </button>
 
+            <button onclick="showSection('notifications', this)"
+            class="menuBtn w-full flex items-center gap-3">
+
+                <i class="fas fa-bell"></i>
+                <span class="menuText">Notifications</span>
+
+            </button>
+
             <button onclick="showSection('reports', this)"
             class="menuBtn w-full flex items-center gap-3">
 
@@ -190,11 +93,19 @@ th,td{
 
             </button>
 
-            <button onclick="showSection('notifications', this)"
+            <button onclick="showSection('prediction', this)"
             class="menuBtn w-full flex items-center gap-3">
 
-                <i class="fas fa-bell"></i>
-                <span class="menuText">Notifications</span>
+                <i class="fas fa-brain"></i>
+                <span class="menuText">Prediction</span>
+
+            </button>
+
+            <button onclick="showSection('communication', this)"
+            class="menuBtn w-full flex items-center gap-3">
+
+                <i class="fas fa-comments"></i>
+                <span class="menuText">Communication</span>
 
             </button>
 
@@ -278,6 +189,23 @@ th,td{
 
         </div>
 
+                <!-- NOTIFICATIONS -->
+        <div id="notifications" class="section hidden p-6">
+
+            <div class="card">
+
+                <h1 class="text-2xl font-bold mb-5">
+                    Notifications
+                </h1>
+
+                <div id="notificationList" class="space-y-3">
+
+                </div>
+
+            </div>
+
+        </div>
+
         <!-- REPORTS -->
         <div id="reports" class="section hidden p-6">
 
@@ -332,22 +260,162 @@ th,td{
 
         </div>
 
-        <!-- NOTIFICATIONS -->
-        <div id="notifications" class="section hidden p-6">
 
-            <div class="card">
+        <!-- PREDICTION -->
+<div id="prediction" class="section hidden p-6">
 
-                <h1 class="text-2xl font-bold mb-5">
-                    Notifications
-                </h1>
+    <div class="card">
 
-                <div id="notificationList" class="space-y-3">
+        <h1 class="text-2xl font-bold mb-5">
+            Decision Tree Predictive Analytics
+        </h1>
+
+        <p class="text-gray-500 mb-5">
+            Predict fire risk levels using
+            severity and incident frequency.
+        </p>
+
+        <div class="grid grid-cols-2 gap-5">
+
+            <!-- INPUT -->
+            <div>
+
+                <label class="font-semibold">
+                    Severity Level
+                </label>
+
+                <select
+                id="severity"
+                class="border p-3 rounded-xl w-full mt-2 mb-5">
+
+                    <option value="1">Low</option>
+                    <option value="2">Medium</option>
+                    <option value="3">High</option>
+
+                </select>
+
+                <label class="font-semibold">
+                    Incident Count
+                </label>
+
+                <input
+                type="number"
+                id="incident_count"
+                placeholder="Enter Incident Count"
+                class="border p-3 rounded-xl w-full mt-2 mb-5">
+
+                <button
+                onclick="predictRisk()"
+                class="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl font-bold w-full">
+
+                    Predict Fire Risk
+
+                </button>
+
+            </div>
+
+            <!-- RESULT -->
+            <div
+            class="bg-gray-100 rounded-2xl p-10 flex flex-col justify-center items-center">
+
+                <i class="fas fa-chart-line text-6xl text-red-600 mb-5"></i>
+
+                <h2 class="text-2xl font-bold mb-3">
+                    Prediction Result
+                </h2>
+
+                <div
+                id="predictionResult"
+                class="text-4xl font-bold text-red-600">
+
+                    WAITING...
 
                 </div>
 
             </div>
 
         </div>
+
+    </div>
+
+</div>
+
+<!-- COMMUNICATION -->
+<div id="communication" class="section hidden p-6">
+
+    <div class="card">
+
+        <h1 class="text-2xl font-bold mb-5">
+            Emergency Communication Module
+        </h1>
+
+        <div class="grid grid-cols-2 gap-5">
+
+            <!-- SEND -->
+            <div>
+
+                <label class="font-semibold">
+                    Receiver
+                </label>
+
+                <select
+                id="receiver"
+                class="border p-3 rounded-xl w-full mt-2 mb-4">
+
+                    <option value="BFP Personnel">
+                        BFP Personnel
+                    </option>
+
+                    <option value="Barangay">
+                        Barangay
+                    </option>
+
+                    <option value="Responder Team">
+                        Responder Team
+                    </option>
+
+                </select>
+
+                <label class="font-semibold">
+                    Message
+                </label>
+
+                <textarea
+                id="message"
+                rows="6"
+                class="border p-3 rounded-xl w-full mt-2 mb-4"
+                placeholder="Enter emergency coordination message..."></textarea>
+
+                <button
+                onclick="sendMessage()"
+                class="bg-red-600 hover:bg-red-700 text-white px-5 py-3 rounded-xl font-bold w-full">
+
+                    Send Message
+
+                </button>
+
+            </div>
+
+            <!-- MESSAGES -->
+            <div>
+
+                <h2 class="font-bold text-xl mb-4">
+                    Live Communication Feed
+                </h2>
+
+                <div
+                id="messageList"
+                class="space-y-3 max-h-[500px] overflow-y-auto">
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
 
         <!-- SETTINGS -->
         <div id="settings" class="section hidden p-6">
@@ -370,300 +438,7 @@ th,td{
 
 </div>
 
-<script>
-
-let activeBtn = null;
-let map = null;
-let markers = [];
-let heatLayer = null;
-
-// ======================
-// ACTIVE BUTTON
-// ======================
-function setActive(btn){
-
-    if(activeBtn){
-        activeBtn.classList.remove('active');
-    }
-
-    btn.classList.add('active');
-    activeBtn = btn;
-
-}
-
-// ======================
-// SECTION SWITCH
-// ======================
-function showSection(section, btn){
-
-    document.querySelectorAll('.section')
-    .forEach(s => s.classList.add('hidden'));
-
-    document.getElementById(section)
-    .classList.remove('hidden');
-
-    document.getElementById('pageTitle').innerText =
-    section.charAt(0).toUpperCase() + section.slice(1);
-
-    setActive(btn);
-
-    if(section === "gis"){
-        setTimeout(initMap, 200);
-    }
-
-}
-
-// ======================
-// SIDEBAR TOGGLE
-// ======================
-function toggleSidebar(){
-
-    const sidebar = document.getElementById('sidebar');
-
-    sidebar.classList.toggle('w-64');
-    sidebar.classList.toggle('w-20');
-    sidebar.classList.toggle('sidebar-collapsed');
-
-}
-
-// ======================
-// LOAD REPORTS
-// ======================
-function loadReports(){
-
-fetch("http://127.0.0.1:5000/reports")
-.then(res => res.json())
-.then(data => {
-
-    // COUNTS
-    document.getElementById("totalReports").innerText = data.length;
-
-    document.getElementById("pendingReports").innerText =
-    data.filter(r => r.status === "Pending").length;
-
-    document.getElementById("confirmedReports").innerText =
-    data.filter(r => r.status === "Confirmed").length;
-
-    document.getElementById("rejectedReports").innerText =
-    data.filter(r => r.status === "Rejected").length;
-
-    // TABLE
-    let table = document.getElementById("reportTable");
-    table.innerHTML = "";
-
-    // NOTIFICATIONS
-    let notif = document.getElementById("notificationList");
-    notif.innerHTML = "";
-
-    data.forEach(r => {
-
-        // TABLE
-        table.innerHTML += `
-        <tr class="border-b">
-
-            <td>${r.id}</td>
-
-            <td>${r.description}</td>
-
-            <td>${r.severity}</td>
-
-            <td>
-                <span class="
-                px-3 py-1 rounded-full text-white text-xs
-                ${r.status === 'Pending' ? 'bg-yellow-500' :
-                r.status === 'Confirmed' ? 'bg-green-600' :
-                'bg-red-600'}
-                ">
-                    ${r.status}
-                </span>
-            </td>
-
-            <td class="space-x-2">
-
-                <button
-                onclick="updateStatus(${r.id}, 'Confirmed')"
-                class="actionBtn confirmBtn">
-
-                    Confirm
-
-                </button>
-
-                <button
-                onclick="updateStatus(${r.id}, 'Rejected')"
-                class="actionBtn rejectBtn">
-
-                    Reject
-
-                </button>
-
-            </td>
-
-        </tr>
-        `;
-
-        // NOTIFICATIONS
-        notif.innerHTML += `
-        <div class="bg-gray-100 p-4 rounded-xl">
-
-            🔥 ${r.description}
-            <br>
-
-            <span class="text-sm text-gray-500">
-                Severity: ${r.severity}
-            </span>
-
-        </div>
-        `;
-
-    });
-
-    // GIS
-    updateMap(data);
-
-});
-
-}
-
-// ======================
-// UPDATE STATUS
-// ======================
-function updateStatus(id, status){
-
-fetch("http://127.0.0.1:5000/update_status", {
-
-    method:"POST",
-
-    headers:{
-        "Content-Type":"application/json"
-    },
-
-    body:JSON.stringify({
-        id:id,
-        status:status
-    })
-
-})
-.then(res => res.json())
-.then(data => {
-
-    console.log(data);
-
-    if(data.success){
-
-        alert("Status Updated");
-
-        loadReports();
-
-    }else{
-
-        alert(data.message);
-
-    }
-
-})
-.catch(err => {
-
-    console.error(err);
-
-    alert("Server Error");
-
-});
-
-}
-
-// ======================
-// INIT MAP
-// ======================
-function initMap(){
-
-    if(!map){
-
-        map = L.map('map').setView([13.8445, 121.2060], 13);
-
-        L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {
-            attribution:'BFP GIS'
-        }).addTo(map);
-
-    }
-
-    setTimeout(() => map.invalidateSize(), 200);
-
-}
-
-// ======================
-// UPDATE MAP
-// ======================
-function updateMap(data){
-
-    if(!map) return;
-
-    markers.forEach(m => map.removeLayer(m));
-    markers = [];
-
-    let heatPoints = [];
-
-    data
-    .filter(r => r.status === "Confirmed")
-    .forEach(r => {
-
-        let color =
-        r.severity === "High" ? "red" :
-        r.severity === "Medium" ? "orange" :
-        "green";
-
-        let marker = L.circleMarker([r.lat, r.lng], {
-
-            radius:8,
-            color:color,
-            fillOpacity:0.8
-
-        })
-        .addTo(map)
-        .bindPopup(
-            "<b>🔥 Incident</b><br>" +
-            r.description +
-            "<br>Status: " + r.status
-        );
-
-        markers.push(marker);
-
-        let intensity =
-        r.severity === "High" ? 1 :
-        r.severity === "Medium" ? 0.6 : 0.3;
-
-        heatPoints.push([r.lat, r.lng, intensity]);
-
-    });
-
-    if(heatLayer){
-        map.removeLayer(heatLayer);
-    }
-
-    heatLayer = L.heatLayer(heatPoints, {
-        radius:25,
-        blur:15
-    }).addTo(map);
-
-}
-
-// ======================
-// INIT
-// ======================
-window.onload = function(){
-
-    const homeBtn = document.querySelector(".menuBtn");
-
-    showSection('home', homeBtn);
-
-    loadReports();
-
-    setInterval(loadReports, 5000);
-
-}
-
-</script>
+<script src="admin.js" defer></script>
 
 </body>
 </html>
