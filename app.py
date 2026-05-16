@@ -1,16 +1,21 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import mysql.connector
-from sklearn.tree import DecisionTreeClassifier
 import pandas as pd
+from sklearn.tree import DecisionTreeClassifier
+import os
+import base64
+import time
 
 app = Flask(__name__)
 
-# IMPORTANT: stable CORS
+# =========================
+# CORS (ALLOW FRONTEND)
+# =========================
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # =========================
-# DB CONNECTION
+# DATABASE CONNECTION
 # =========================
 def get_db():
     return mysql.connector.connect(
@@ -22,7 +27,7 @@ def get_db():
     )
 
 # =========================
-# ML MODEL
+# ML MODEL (RISK PREDICTION)
 # =========================
 training_data = {
     'severity': [1, 2, 3, 1, 3, 2, 3, 1],
@@ -45,7 +50,7 @@ def home():
     return "API RUNNING"
 
 # =========================
-# SUBMIT REPORT (STABLE FIX)
+# FIXED REPORT ENDPOINT (JSON + FORM + CAMERA)
 # =========================
 @app.route("/report", methods=["POST"])
 def report():
@@ -56,7 +61,13 @@ def report():
         db = get_db()
         cur = db.cursor()
 
-        data = request.get_json()
+        # =========================
+        # SUPPORT JSON OR FORM DATA
+        # =========================
+        if request.is_json:
+            data = request.get_json()
+        else:
+            data = request.form
 
         user_id = data.get("user_id")
         description = data.get("description")
@@ -67,12 +78,44 @@ def report():
         type_ = data.get("type") or "Unknown"
         category = data.get("category") or type_
 
+        # =========================
+        # CAMERA IMAGE HANDLING
+        # =========================
+        photo_base64 = data.get("photo_base64")
+        image_path = None
+
+        if photo_base64:
+            try:
+                os.makedirs("uploads", exist_ok=True)
+
+                header, encoded = photo_base64.split(",", 1)
+                image_data = base64.b64decode(encoded)
+
+                filename = f"report_{int(time.time())}.png"
+                image_path = os.path.join("uploads", filename)
+
+                with open(image_path, "wb") as f:
+                    f.write(image_data)
+
+            except Exception as e:
+                return jsonify({
+                    "success": False,
+                    "message": "Image upload failed",
+                    "error": str(e)
+                }), 500
+
+        # =========================
+        # VALIDATION
+        # =========================
         if not description or not severity:
             return jsonify({
                 "success": False,
                 "message": "Missing description or severity"
             }), 400
 
+        # =========================
+        # INSERT INTO DATABASE
+        # =========================
         cur.execute("""
             INSERT INTO reports
             (user_id, description, severity, lat, lng, status, type, category)
@@ -92,7 +135,8 @@ def report():
 
         return jsonify({
             "success": True,
-            "message": "Report Saved"
+            "message": "Report Saved Successfully",
+            "image_saved": image_path
         })
 
     except Exception as e:
@@ -131,10 +175,7 @@ def get_reports():
         return jsonify(cur.fetchall())
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 500
+        return jsonify({"success": False, "message": str(e)}), 500
 
     finally:
         if cur:
@@ -169,10 +210,7 @@ def update_status():
         status = map_status.get(status)
 
         if not report_id or not status:
-            return jsonify({
-                "success": False,
-                "message": "Invalid request"
-            }), 400
+            return jsonify({"success": False, "message": "Invalid request"}), 400
 
         cur.execute("""
             UPDATE reports
@@ -188,10 +226,7 @@ def update_status():
         })
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 500
+        return jsonify({"success": False, "message": str(e)}), 500
 
     finally:
         if cur:
@@ -200,42 +235,7 @@ def update_status():
             db.close()
 
 # =========================
-# BFP QUEUE
-# =========================
-@app.route("/bfp_queue", methods=["GET"])
-def bfp_queue():
-    db = None
-    cur = None
-
-    try:
-        db = get_db()
-        cur = db.cursor(dictionary=True)
-
-        cur.execute("""
-            SELECT bfp_queue.id,
-                   bfp_queue.status AS queue_status,
-                   reports.*
-            FROM bfp_queue
-            INNER JOIN reports ON bfp_queue.report_id = reports.id
-            ORDER BY bfp_queue.id DESC
-        """)
-
-        return jsonify(cur.fetchall())
-
-    except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 500
-
-    finally:
-        if cur:
-            cur.close()
-        if db:
-            db.close()
-
-# =========================
-# PREDICT RISK
+# RISK PREDICTION (ML)
 # =========================
 @app.route("/predict_risk", methods=["POST"])
 def predict_risk():
@@ -253,10 +253,7 @@ def predict_risk():
         })
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 500
+        return jsonify({"success": False, "message": str(e)}), 500
 
 # =========================
 # SEND MESSAGE
@@ -286,16 +283,10 @@ def send_message():
 
         db.commit()
 
-        return jsonify({
-            "success": True,
-            "message": "Message Sent"
-        })
+        return jsonify({"success": True, "message": "Message Sent"})
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 500
+        return jsonify({"success": False, "message": str(e)}), 500
 
     finally:
         if cur:
@@ -315,19 +306,12 @@ def get_messages():
         db = get_db()
         cur = db.cursor(dictionary=True)
 
-        cur.execute("""
-            SELECT *
-            FROM messages
-            ORDER BY created_at DESC
-        """)
+        cur.execute("SELECT * FROM messages ORDER BY created_at DESC")
 
         return jsonify(cur.fetchall())
 
     except Exception as e:
-        return jsonify({
-            "success": False,
-            "message": str(e)
-        }), 500
+        return jsonify({"success": False, "message": str(e)}), 500
 
     finally:
         if cur:
@@ -336,7 +320,8 @@ def get_messages():
             db.close()
 
 # =========================
-# RUN
+# RUN SERVER
 # =========================
 if __name__ == "__main__":
+    os.makedirs("uploads", exist_ok=True)
     app.run(host="0.0.0.0", port=5000, debug=True)
